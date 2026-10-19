@@ -1,0 +1,19 @@
+# plugin source and packages are published as a release asset, not in the repository
+*.zip
+*.7z
+floodml_geo/
+# python
+__pycache__/
+*.pyc
+.venv/
+venv*/
+# OS and editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+# data that should not be public
+*.gpkg
+*.tif
+*.shp
+raw_data.csv
