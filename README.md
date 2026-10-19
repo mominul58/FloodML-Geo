@@ -14,7 +14,7 @@ Developed by **Md Mominul Islam**.
 
 FloodML-Geo adds a set of tools to the QGIS Processing Toolbox. You give it a flood record raster (0 = no flood, 1 = flood), predictor rasters (elevation, slope, NDVI, distance to river and so on) and either sample points or a grid of polygons. It builds the training table, checks it, trains the models, validates them honestly, and writes the susceptibility map.
 
-**See the results:** open the [results gallery](https://YOUR-USERNAME.github.io/FloodML-Geo/) or browse the files in [`docs/reports`](docs/reports).
+**See the results:** open the [results gallery](https://mominul58.github.io/FloodML-Geo/) or browse the files in [`docs/reports`](docs/reports).
 
 ---
 
