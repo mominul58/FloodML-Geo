@@ -1,0 +1,3 @@
+This page shows one run of the plugin on 3,908 grid cells of 100 m around 24.40° N, 91.05° E. The flood label comes from a flood record raster, and the predictors are distance to river, distance to road, elevation, slope and NDVI.
+
+The numbers are a demonstration of what the reports look like, not a finished flood study. Two limits of this run are worth knowing. Permanent water was not excluded from the training table, so the river channel is scored as a non-flood area. And the independent test used the training table, which the plugin flags as not valid. Rebuild the table with the water-exclusion option of tool 01 before you use a map for decisions.

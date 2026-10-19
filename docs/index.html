@@ -1,0 +1,153 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FloodML-Geo results</title>
+<meta name="description" content="Example results of the FloodML-Geo QGIS plugin: spatially validated flood susceptibility modelling.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0e2230; --muted:#51636f; --fog:#edf1f3; --panel:#ffffff; --line:#cfd8de;
+  --river:#2c7bb6; --flood:#d7191c; --link:#17598f;
+  --c1:#2c7bb6; --c2:#abdda4; --c3:#ffffbf; --c4:#fdae61; --c5:#d7191c;
+  --serif:'Newsreader','Iowan Old Style','Palatino Linotype',Georgia,serif;
+  --sans:'Public Sans','Segoe UI',system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){ --ink:#e4edf2; --muted:#93a6b2; --fog:#0b1822; --panel:#12212d; --line:#284050; --link:#7fbbe6; }
+}
+:root[data-theme="dark"]{ --ink:#e4edf2; --muted:#93a6b2; --fog:#0b1822; --panel:#12212d; --line:#284050; --link:#7fbbe6; }
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--fog);color:var(--ink);font:16px/1.6 var(--sans)}
+a{color:var(--link)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+nav.top{position:sticky;top:0;z-index:5;background:color-mix(in srgb,var(--fog) 92%,transparent);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+nav.top .wrap{display:flex;gap:22px;align-items:center;overflow-x:auto;white-space:nowrap;padding-top:10px;padding-bottom:10px}
+nav.top b{font-family:var(--serif);font-size:18px;margin-right:auto}
+nav.top a{text-decoration:none;color:var(--muted);font-size:14px}
+nav.top a:hover,nav.top a:focus-visible{color:var(--ink);text-decoration:underline}
+.hero{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:40px;align-items:center;padding:48px 20px 36px}
+.hero h1{font:600 clamp(40px,6vw,68px)/1.02 var(--serif);margin:0 0 16px;letter-spacing:-.01em}
+.hero p.lead{font-size:19px;max-width:34ch;margin:0 0 26px}
+.facts{display:grid;gap:10px;margin:0;padding:0;list-style:none;max-width:34ch}
+.facts li{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:8px}
+.facts b{font-variant-numeric:tabular-nums}
+.hero figure{margin:0}
+.hero img{width:100%;height:auto;display:block;background:#fff;border-radius:4px;cursor:zoom-in}
+.ramp{display:flex;height:8px;margin:0}
+.ramp i{flex:1}
+section{padding:54px 0 12px}
+h2{font:600 clamp(26px,3.4vw,36px)/1.15 var(--serif);margin:0 0 10px}
+h3{font:600 20px/1.3 var(--serif);margin:30px 0 8px}
+.intro{max-width:68ch;color:var(--muted);margin:0 0 22px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0;border-top:2px solid var(--ink);margin-top:18px}
+.steps div{padding:14px 16px 16px 0}
+.steps b{display:block;font-family:var(--serif);font-size:19px}
+.steps span{display:block;font-variant-numeric:tabular-nums;color:var(--river);font-weight:600;font-size:14px}
+.steps p{margin:4px 0 0;color:var(--muted);font-size:14.5px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;align-items:start}
+.grid.wide{grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}
+figure.f{margin:0}
+figure.f img{width:100%;height:auto;display:block;background:#fff;border:1px solid var(--line);border-radius:4px;cursor:zoom-in}
+figure.f figcaption{font-size:13.5px;color:var(--muted);margin-top:6px;max-width:60ch}
+table{border-collapse:collapse;width:100%;font-size:14.5px;font-variant-numeric:tabular-nums}
+.tw{overflow-x:auto;margin:10px 0 6px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap;vertical-align:bottom}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;border-bottom:2px solid var(--ink);white-space:normal;line-height:1.3}
+.tw.narrow{max-width:460px}
+.mapfig{max-width:820px}
+.mswitch{display:inline-flex;border:1px solid var(--ink);border-radius:999px;overflow:hidden;margin:6px 0 14px}
+.mswitch button{font:inherit;font-size:14px;background:none;color:var(--ink);border:0;padding:6px 18px;cursor:pointer}
+.mswitch button[aria-pressed="true"]{background:var(--ink);color:var(--fog)}
+.mswitch button:focus-visible{outline:3px solid var(--river);outline-offset:-3px}
+.note{border-left:4px solid var(--c4);padding:4px 0 4px 16px;margin:18px 0;max-width:78ch}
+.note.bad{border-color:var(--flood)}
+.void{opacity:.5}
+.note p{margin:6px 0}
+.note b{font-weight:600}
+ul.plain{padding-left:20px;max-width:78ch}
+.dl a{display:inline-block;margin:0 18px 8px 0}
+footer{margin-top:60px;border-top:1px solid var(--line);padding:26px 0 50px;color:var(--muted);font-size:14px}
+dialog{border:0;padding:0;background:none;max-width:96vw;max-height:96vh}
+dialog::backdrop{background:rgba(5,15,22,.82)}
+dialog img{max-width:96vw;max-height:94vh;background:#fff;display:block;border-radius:4px}
+@media (max-width:860px){.hero{grid-template-columns:1fr;gap:24px;padding-top:28px}.grid.wide{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style></head><body>
+<nav class="top"><div class="wrap"><b>FloodML-Geo</b>
+<a href="#workflow">Workflow</a><a href="#map">Map</a><a href="#data">Data check</a><a href="#validation">Validation</a><a href="#drivers">Drivers</a><a href="#independent">Independent test</a><a href="#reading">Reading the results</a><a href="#reports">Full reports</a></div></nav>
+<header class="wrap hero"><div>
+<h1>FloodML-Geo</h1>
+<p class="lead">Flood susceptibility mapping inside QGIS, checked with spatial cross-validation. These are example results.</p>
+<ul class="facts"><li><span>Locations</span><b>3,908</b></li><li><span>Flooded</span><b>82.8 %</b></li><li><span>ROC-AUC, spatial CV</span><b>0.956 / 0.956</b></li><li><span>Models</span><b>RF + XGBoost</b></li><li><span>Validation block</span><b>1,073 m</b></li></ul></div><figure><img src="img/susceptibility_map.png" alt="Flood susceptibility classes map" data-zoom></figure></header>
+<p class="ramp" aria-hidden="true"><i style="background:var(--c1)"></i><i style="background:var(--c2)"></i><i style="background:var(--c3)"></i><i style="background:var(--c4)"></i><i style="background:var(--c5)"></i></p>
+<main class="wrap">
+<section id="workflow"><h2>Workflow</h2>
+<p class="intro">Each tool reads the output of the one before it. The flood raster is an input of the first tool, so no label field is needed on your points or grid.</p>
+<div class="steps">
+<div><span>01</span><b>Build the table</b><p>Flood raster and predictor rasters, read at your points or grid cells, written to a CSV.</p></div>
+<div><span>02</span><b>Check the table</b><p>Class balance, leakage hints, correlation and a suggested block size.</p></div>
+<div><span>03</span><b>Train and validate</b><p>Nested spatial cross-validation, confidence intervals, SHAP, residual maps.</p></div>
+<div><span>04</span><b>Map</b><p>Susceptibility raster, classes, styles and an extrapolation warning raster.</p></div>
+<div><span>05</span><b>Independent test</b><p>Scores on data the models never saw, with an overlap check.</p></div>
+<div><span>06</span><b>Self-test</b><p>Runs the whole chain on synthetic data and says whether it works.</p></div>
+</div></section>
+<section id="map"><h2>Susceptibility map</h2>
+<p class="intro">Five classes from the ensemble prediction. With quantile classes each class holds about the same number of cells by design, so the map ranks places against each other. It is not a probability of flooding.</p>
+<div class="mapfig"><figure class="f"><img src="img/susceptibility_map.png" alt="Susceptibility classes from RF and XGBoost. The river channel falls in the lowest class because permanent water was not excluded from the training table in this run." loading="lazy" data-zoom><figcaption>Susceptibility classes from RF and XGBoost. The river channel falls in the lowest class because permanent water was not excluded from the training table in this run.</figcaption></figure></div></section>
+<section id="data"><h2>Data check</h2>
+<p class="intro">Tool 02 inspects the CSV before any model is trained.</p>
+<div class="grid"><figure class="f"><img src="img/data_class_balance.png" alt="Class balance and sample locations." loading="lazy" data-zoom><figcaption>Class balance and sample locations.</figcaption></figure><figure class="f"><img src="img/data_separability.png" alt="Single-predictor separability." loading="lazy" data-zoom><figcaption>Single-predictor separability.</figcaption></figure><figure class="f"><img src="img/data_correlation.png" alt="Spearman correlation between predictors." loading="lazy" data-zoom><figcaption>Spearman correlation between predictors.</figcaption></figure><figure class="f"><img src="img/data_distributions.png" alt="Predictor distributions by class." loading="lazy" data-zoom><figcaption>Predictor distributions by class.</figcaption></figure><figure class="f"><img src="img/data_missing.png" alt="Missing values." loading="lazy" data-zoom><figcaption>Missing values.</figcaption></figure></div>
+<h3>Variance inflation</h3><div class="tw narrow"><table><thead><tr><th>feature</th><th>vif</th></tr></thead><tbody><tr><td>distance_to_river1</td><td>1.225</td></tr><tr><td>distance_to_road1</td><td>1.221</td></tr><tr><td>elevation_srtm_30m_clipped</td><td>1.162</td></tr><tr><td>ndvi_s2_10m</td><td>1.114</td></tr><tr><td>slope_degree_30m_clipped</td><td>1.050</td></tr></tbody></table></div>
+</section>
+<section id="validation"><h2>Spatial validation</h2>
+<p class="intro">Every record is predicted by a model that did not see it or its neighbourhood. Intervals come from a cluster bootstrap over the spatial blocks.</p>
+<div class="tw"><table><thead><tr><th>Model</th><th>ROC-AUC [95 % CI]</th><th>PR-AUC [95 % CI]</th><th>TSS [95 % CI]</th><th>Balanced acc.</th><th>Kappa</th><th>Brier [95 % CI]</th><th>ECE</th><th>Fold AUC mean±SD</th></tr></thead><tbody><tr><td>RF</td><td>0.956 [0.935–0.971]</td><td>0.989 [0.980–0.996]</td><td>0.749 [0.697–0.801]</td><td>0.875</td><td>0.711</td><td>0.064 [0.044–0.083]</td><td>0.052</td><td>0.958 ± 0.026</td></tr><tr><td>XGBoost</td><td>0.956 [0.936–0.974]</td><td>0.990 [0.980–0.997]</td><td>0.771 [0.718–0.824]</td><td>0.886</td><td>0.713</td><td>0.065 [0.044–0.086]</td><td>0.051</td><td>0.957 ± 0.028</td></tr></tbody></table></div>
+<div class="grid wide"><figure class="f"><img src="img/cv_compare.png" alt="Model comparison: pooled ROC and precision–recall curves, and fold-to-fold AUC variability." loading="lazy" data-zoom><figcaption>Model comparison: pooled ROC and precision–recall curves, and fold-to-fold AUC variability.</figcaption></figure><figure class="f"><img src="img/cv_folds_map.png" alt="Spatial layout of the cross-validation folds." loading="lazy" data-zoom><figcaption>Spatial layout of the cross-validation folds.</figcaption></figure><figure class="f"><img src="img/cv_autocorr.png" alt="Autocorrelation range of predictors and label (block-size advisor)." loading="lazy" data-zoom><figcaption>Autocorrelation range of predictors and label (block-size advisor).</figcaption></figure></div>
+<h3>One model at a time</h3>
+<div class="mswitch" role="group" aria-label="Model"><button type="button" data-m="RF" aria-pressed="false">RF</button><button type="button" data-m="XGBoost" aria-pressed="false">XGBoost</button></div>
+<div data-model="RF"><div class="grid"><figure class="f"><img src="img/cv_rf_roc.png" alt="Receiver operating characteristic: pooled out-of-fold curve and individual folds." loading="lazy" data-zoom><figcaption>Receiver operating characteristic: pooled out-of-fold curve and individual folds.</figcaption></figure><figure class="f"><img src="img/cv_rf_pr.png" alt="Precision–recall curve (useful when classes are imbalanced)." loading="lazy" data-zoom><figcaption>Precision–recall curve (useful when classes are imbalanced).</figcaption></figure><figure class="f"><img src="img/cv_rf_confusion.png" alt="Out-of-fold confusion matrix." loading="lazy" data-zoom><figcaption>Out-of-fold confusion matrix.</figcaption></figure><figure class="f"><img src="img/cv_rf_calibration.png" alt="Reliability diagram with 95 % Wilson intervals and score histogram." loading="lazy" data-zoom><figcaption>Reliability diagram with 95 % Wilson intervals and score histogram.</figcaption></figure><figure class="f"><img src="img/cv_rf_scores.png" alt="Score distribution per class and threshold sensitivity." loading="lazy" data-zoom><figcaption>Score distribution per class and threshold sensitivity.</figcaption></figure><figure class="f"><img src="img/cv_rf_fold_metrics.png" alt="Metric variability across the spatial folds." loading="lazy" data-zoom><figcaption>Metric variability across the spatial folds.</figcaption></figure></div></div>
+<div data-model="XGBoost"><div class="grid"><figure class="f"><img src="img/cv_xgboost_roc.png" alt="Receiver operating characteristic: pooled out-of-fold curve and individual folds." loading="lazy" data-zoom><figcaption>Receiver operating characteristic: pooled out-of-fold curve and individual folds.</figcaption></figure><figure class="f"><img src="img/cv_xgboost_pr.png" alt="Precision–recall curve (useful when classes are imbalanced)." loading="lazy" data-zoom><figcaption>Precision–recall curve (useful when classes are imbalanced).</figcaption></figure><figure class="f"><img src="img/cv_xgboost_confusion.png" alt="Out-of-fold confusion matrix." loading="lazy" data-zoom><figcaption>Out-of-fold confusion matrix.</figcaption></figure><figure class="f"><img src="img/cv_xgboost_calibration.png" alt="Reliability diagram with 95 % Wilson intervals and score histogram." loading="lazy" data-zoom><figcaption>Reliability diagram with 95 % Wilson intervals and score histogram.</figcaption></figure><figure class="f"><img src="img/cv_xgboost_scores.png" alt="Score distribution per class and threshold sensitivity." loading="lazy" data-zoom><figcaption>Score distribution per class and threshold sensitivity.</figcaption></figure><figure class="f"><img src="img/cv_xgboost_fold_metrics.png" alt="Metric variability across the spatial folds." loading="lazy" data-zoom><figcaption>Metric variability across the spatial folds.</figcaption></figure></div></div>
+</section>
+<section id="drivers"><h2>What drives the prediction</h2>
+<p class="intro">Permutation importance drops each predictor on held-out folds. SHAP shows how each value moves the prediction. Both describe the model, not cause and effect.</p>
+<div class="mswitch" role="group" aria-label="Model"><button type="button" data-m="RF" aria-pressed="false">RF</button><button type="button" data-m="XGBoost" aria-pressed="false">XGBoost</button></div>
+<div data-model="RF"><div class="grid wide"><figure class="f"><img src="img/cv_rf_permutation.png" alt="Permutation importance on held-out folds (and SHAP when enabled)." loading="lazy" data-zoom><figcaption>Permutation importance on held-out folds (and SHAP when enabled).</figcaption></figure><figure class="f"><img src="img/cv_rf_shap_summary.png" alt="SHAP summary of the deployment model." loading="lazy" data-zoom><figcaption>SHAP summary of the deployment model.</figcaption></figure><figure class="f"><img src="img/cv_rf_shap_dependence.png" alt="SHAP dependence on the original predictor values." loading="lazy" data-zoom><figcaption>SHAP dependence on the original predictor values.</figcaption></figure><figure class="f"><img src="img/cv_rf_residuals.png" alt="Spatial structure of the out-of-fold residuals." loading="lazy" data-zoom><figcaption>Spatial structure of the out-of-fold residuals.</figcaption></figure></div></div>
+<div data-model="XGBoost"><div class="grid wide"><figure class="f"><img src="img/cv_xgboost_permutation.png" alt="Permutation importance on held-out folds (and SHAP when enabled)." loading="lazy" data-zoom><figcaption>Permutation importance on held-out folds (and SHAP when enabled).</figcaption></figure><figure class="f"><img src="img/cv_xgboost_shap_summary.png" alt="SHAP summary of the deployment model." loading="lazy" data-zoom><figcaption>SHAP summary of the deployment model.</figcaption></figure><figure class="f"><img src="img/cv_xgboost_shap_dependence.png" alt="SHAP dependence on the original predictor values." loading="lazy" data-zoom><figcaption>SHAP dependence on the original predictor values.</figcaption></figure><figure class="f"><img src="img/cv_xgboost_residuals.png" alt="Spatial structure of the out-of-fold residuals." loading="lazy" data-zoom><figcaption>Spatial structure of the out-of-fold residuals.</figcaption></figure></div></div>
+<div class="note"><b>Notes from the run</b><ul class="plain"><li>Predictor &#x27;distance_to_river1&#x27;: 7 missing value(s) (median-imputed inside every fold).</li><li>Predictor &#x27;distance_to_road1&#x27;: 7 missing value(s) (median-imputed inside every fold).</li><li>Predictor &#x27;elevation_srtm_30m_clipped&#x27;: 3 missing value(s) (median-imputed inside every fold).</li><li>Predictor &#x27;slope_degree_30m_clipped&#x27;: 3 missing value(s) (median-imputed inside every fold).</li><li>RF: residuals are still spatially clustered (Moran I = 0.35, p = 0.002); important spatial structure may be missing from the predictors.</li><li>XGBoost: residuals are still spatially clustered (Moran I = 0.32, p = 0.002); important spatial structure may be missing from the predictors.</li></ul></div>
+</section>
+<section id="independent"><h2>Independent test</h2>
+<div class="note bad"><b>Flagged by the safeguard.</b><p>In this example the test table is the training table, so the scores below measure memory, not generalisation. The plugin detects this and refuses to call the result valid. For a real test, use another area, event or year.</p></div>
+<div class="void" title="Not valid: same records as training"><div class="tw"><table><thead><tr><th>Model</th><th>ROC-AUC [95 % CI]</th><th>PR-AUC [95 % CI]</th><th>TSS</th><th>Balanced acc.</th><th>Kappa</th><th>Brier</th><th>ECE</th><th>CV ROC-AUC</th></tr></thead><tbody><tr><td>XGBoost</td><td>0.997 [0.996–0.998]</td><td>0.999 [0.999–1.000]</td><td>0.954</td><td>0.977</td><td>0.885</td><td>0.026</td><td>0.043</td><td>0.956</td></tr><tr><td>RF</td><td>0.990 [0.988–0.992]</td><td>0.998 [0.997–0.998]</td><td>0.895</td><td>0.947</td><td>0.818</td><td>0.041</td><td>0.062</td><td>0.956</td></tr></tbody></table></div></div>
+<ul class="plain"><li>NOT INDEPENDENT: 100 % of the test records are identical to training records of XGBoost (same coordinates). The scores below measure how well the model remembers its training data, not how it generalises. Do not report them. Build the test table from another area, event or year.</li></ul>
+<div class="grid"><figure class="f"><img src="img/test_xgboost_roc.png" alt="ROC curve" loading="lazy" data-zoom><figcaption>ROC curve</figcaption></figure><figure class="f"><img src="img/test_xgboost_confusion.png" alt="Confusion matrix" loading="lazy" data-zoom><figcaption>Confusion matrix</figcaption></figure><figure class="f"><img src="img/test_xgboost_calibration.png" alt="Calibration" loading="lazy" data-zoom><figcaption>Calibration</figcaption></figure></div>
+</section>
+<section id="reading"><h2>Reading these results</h2>
+<p style="max-width:72ch">This page shows one run of the plugin on 3,908 grid cells of 100 m around 24.40° N, 91.05° E. The flood label comes from a flood record raster, and the predictors are distance to river, distance to road, elevation, slope and NDVI.</p>
+<p style="max-width:72ch">The numbers are a demonstration of what the reports look like, not a finished flood study. Two limits of this run are worth knowing. Permanent water was not excluded from the training table, so the river channel is scored as a non-flood area. And the independent test used the training table, which the plugin flags as not valid. Rebuild the table with the water-exclusion option of tool 01 before you use a map for decisions.</p>
+<div class="note"><b>Always true of susceptibility maps</b><ul class="plain"><li>A predictor must be known before the flood. A layer made from the flood image leaks the answer.</li><li>Scores are susceptibility ranks, not flood depth, return period or risk.</li><li>Tree models do not enforce the direction you give a predictor; the direction only changes scaling.</li><li>Check the extrapolation raster before trusting cells outside the training range.</li></ul></div></section>
+<section id="reports"><h2>Full reports</h2><p class="intro">The complete files written by the plugin, with every figure and table.</p><p class="dl">
+<a href="reports/02_dataset_report.html">Data check</a>
+<a href="reports/03_training_validation.html">Training and validation</a>
+<a href="reports/05_independent_test_report.html">Independent test</a>
+<a href="USER_GUIDE.html">User guide</a></p></section></main>
+<footer><div class="wrap">Developed by Md Mominul Islam. Page built from the report files by scripts/build_gallery.py.</div></footer>
+<dialog id="lb"><img alt=""></dialog><script>
+(function(){
+  var cur=null, groups=document.querySelectorAll('.mswitch');
+  function setModel(m){
+    cur=m;
+    document.querySelectorAll('[data-model]').forEach(function(el){el.hidden = el.getAttribute('data-model')!==m;});
+    groups.forEach(function(g){g.querySelectorAll('button').forEach(function(b){b.setAttribute('aria-pressed', b.dataset.m===m);});});
+  }
+  groups.forEach(function(g){g.querySelectorAll('button').forEach(function(b){b.addEventListener('click',function(){setModel(b.dataset.m);});});});
+  if(groups.length){setModel(groups[0].querySelector('button').dataset.m);}
+  var dlg=document.getElementById('lb'), big=dlg&&dlg.querySelector('img');
+  document.addEventListener('click',function(ev){
+    var im=ev.target.closest('img[data-zoom]');
+    if(im&&dlg&&dlg.showModal){big.src=im.src;big.alt=im.alt;dlg.showModal();}
+    else if(ev.target.closest('dialog')){dlg.close();}
+  });
+})();
+</script></body></html>

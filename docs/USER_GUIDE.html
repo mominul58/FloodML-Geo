@@ -1,0 +1,704 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'><meta name='viewport' content='width=device-width,initial-scale=1'><title>FloodML-Geo User Guide</title><style>
+:root{--bg:#fff;--fg:#1d2330;--mut:#5a6578;--line:#dde2ea;--acc:#0B4F8A;--code:#f3f5f9}
+@media (prefers-color-scheme:dark){:root{--bg:#14181f;--fg:#e6e9ef;--mut:#a3adbd;--line:#2b3340;--acc:#6bb4ee;--code:#1d232d}}
+body{background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0}
+main{max-width:860px;margin:0 auto;padding:28px 18px 80px}
+h1{font-size:2rem;margin:.2em 0 .4em;color:var(--acc)} h2{margin-top:2.2em;padding-top:.4em;border-top:1px solid var(--line);font-size:1.45rem}
+h3{margin-top:1.6em} a{color:var(--acc)} code{background:var(--code);padding:.1em .35em;border-radius:4px;font-size:.92em}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow:auto} pre code{background:none;padding:0}
+table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;margin:1em 0} th,td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+th{background:var(--code)} blockquote{margin:1em 0;padding:.4em 1em;border-left:4px solid var(--acc);background:var(--code);color:var(--mut)}
+hr{border:0;border-top:1px solid var(--line);margin:2em 0}
+</style></head><body><main><h1 id="floodml-geo-03-user-guide">FloodML-Geo 0.3 – User guide</h1>
+<p><em>Developed by <strong>Md Mominul Islam</strong>.</em></p>
+<p>Flood-susceptibility modelling in QGIS with machine learning, honest spatial validation, publication-quality figures and ready-styled maps.</p>
+<p><strong>Contents</strong></p>
+<ol>
+<li><a href="#1-what-you-get">What you get</a></li>
+<li><a href="#2-install-the-plugin-in-qgis">Install the plugin in QGIS</a></li>
+<li><a href="#3-install-the-python-packages">Install the Python packages</a></li>
+<li><a href="#4-check-that-it-works-the-self-test">Check that it works – the self-test</a></li>
+<li><a href="#5-prepare-your-data">Prepare your data</a></li>
+<li><a href="#6-quick-start">Quick start (15 minutes)</a></li>
+<li><a href="#7-tool-01-build-the-training-table">Tool 01 – Build the training table</a></li>
+<li><a href="#8-tool-02-quality-check">Tool 02 – Quality check</a></li>
+<li><a href="#9-tool-03-train-and-validate">Tool 03 – Train and validate</a></li>
+<li><a href="#10-tool-04-map-susceptibility">Tool 04 – Map susceptibility</a></li>
+<li><a href="#11-tool-05-independent-test">Tool 05 – Independent test</a></li>
+<li><a href="#12-reading-the-report-and-the-figures">Reading the report and the figures</a></li>
+<li><a href="#13-recommended-settings-for-a-thesis-or-paper">Recommended settings for a thesis or paper</a></li>
+<li><a href="#14-troubleshooting">Troubleshooting</a></li>
+<li><a href="#15-limits-and-interpretation">Limits and interpretation</a></li>
+<li><a href="#16-running-it-from-the-python-console">Running it from the Python console</a></li>
+</ol>
+<hr />
+<h2 id="1-what-you-get">1. What you get</h2>
+<p>The workflow follows the tool numbers:</p>
+<pre><code> flood record raster (0/1)  = TARGET ─┐
+ predictor rasters (elevation, …)  ───┼─►  01 Build the training table ─► CSV (flood, x, y, elevation, …)
+ points  OR  grid polygons (where) ───┘                                       │
+                                                                              ▼
+                       02 Quality check ─► 03 Train + validate ─► 04 Map ─► 05 Independent test
+                       06 Self-test (checks that all of this works)
+</code></pre>
+<p>Seven tools appear in the <strong>Processing Toolbox</strong> under <strong>FloodML-Geo</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>01 Build the training table</strong></td>
+<td>The <strong>flood record raster (0 = no flood, 1 = flood)</strong> is added like a predictor raster, but it becomes the <strong>target</strong> column <code>flood</code>; all other rasters become predictors. <strong>Points</strong> → every raster is read directly at the point. <strong>Grid polygons</strong> → zonal mean of every predictor (majority for categorical) and the <strong>flooded share</strong> of the cell for the target, with automatic virtual resampling when a raster pixel is larger than the cell. The points or grid need <strong>no label field</strong>.</td>
+</tr>
+<tr>
+<td><strong>02 Quality check</strong></td>
+<td>Finds problems <em>before</em> modelling: class imbalance, constant or label-leaking predictors, collinearity, missing values, degree coordinates, spatial clustering; suggests a block size.</td>
+</tr>
+<tr>
+<td><strong>03 Train and validate</strong></td>
+<td>Random Forest, XGBoost, LightGBM, HistGB, logistic regression. Fold-safe preprocessing, spatial cross-validation, optional nested tuning, bootstrap confidence intervals, importance, SHAP, HTML report, figures.</td>
+</tr>
+<tr>
+<td><strong>04 Map flood susceptibility</strong></td>
+<td>Susceptibility raster, ensemble spread, class map with area table, extrapolation map, automatic alignment of rasters with different grids, ready <code>.qml</code> styles, preview image.</td>
+</tr>
+<tr>
+<td><strong>05 Independent test</strong></td>
+<td>Scores saved models on a second area / event / year, without refitting or tuning.</td>
+</tr>
+<tr>
+<td><strong>06 Self-test</strong></td>
+<td>Runs every tool on a built-in synthetic study area and compares the results with known answers. PASS / FAIL report.</td>
+</tr>
+<tr>
+<td><strong>07 (Optional) Draw sample points from the flood raster</strong></td>
+<td>Only if you have no points yet: draws balanced flood / non-flood pixel centres from the flood raster.</td>
+</tr>
+</tbody>
+</table>
+<p>A menu <strong>Plugins → FloodML-Geo</strong> gives the self-test, a dependency installer, this guide and an About box.</p>
+<hr />
+<h2 id="2-install-the-plugin-in-qgis">2. Install the plugin in QGIS</h2>
+<p>Requires <strong>QGIS 3.28 or newer</strong> (a recent LTR is best).</p>
+<ol>
+<li>Download <strong><code>FloodML_Geo_QGIS_Plugin_v0.3.1.zip</code></strong>. Do <strong>not</strong> unzip it.</li>
+<li>In QGIS: <strong>Plugins → Manage and Install Plugins… → Install from ZIP</strong>.</li>
+<li>Click <strong>…</strong>, choose the ZIP, then <strong>Install Plugin</strong>. Confirm the security notice.</li>
+<li>Switch to the <strong>Installed</strong> tab and make sure <strong>FloodML-Geo</strong> is ticked.</li>
+<li>Open the Processing Toolbox with <strong>Ctrl + Alt + T</strong> (or <em>Processing → Toolbox</em>) and expand <strong>FloodML-Geo</strong>. If the Processing plugin is switched off, enable it under <em>Plugins → Manage and Install Plugins → Installed</em>.</li>
+</ol>
+<p>You will see tools 01–07. If the <em>Plugins → FloodML-Geo</em> menu is missing, the plugin did not load: open <em>Plugins → Python Console</em> or <em>View → Panels → Log Messages → Plugins</em> and read the error (usually a missing Python package, see next section).</p>
+<p><strong>Updating (or replacing an old 0.2.0 / 0.2.1):</strong> in <em>Manage and Install Plugins → Installed</em> select <strong>FloodML-Geo → Uninstall Plugin</strong>, restart QGIS, then install the new ZIP as above and restart QGIS once more. Installing over the old version without a restart can leave the old code loaded.</p>
+<hr />
+<h2 id="3-install-the-python-packages">3. Install the Python packages</h2>
+<p>FloodML-Geo needs scikit-learn and friends <strong>inside the Python that QGIS uses</strong>. Many QGIS installs already contain some of them. The plugin itself loads without them, and <strong>tool 01 (building the training table), tool 07 and the menu need no extra package</strong>; tools 02 – 06 do (06 runs step 01 without them and tells you what is missing).</p>
+<h3 id="the-easy-way-all-systems">The easy way (all systems)</h3>
+<p><strong>Plugins → FloodML-Geo → Check / install Python dependencies…</strong> shows what is installed and has an <strong>Install missing packages</strong> button. Restart QGIS when it says <em>Finished (exit code 0)</em>.</p>
+<p>Required: <code>numpy, pandas, scipy, scikit-learn, joblib, matplotlib</code>. Optional: <code>xgboost</code> (XGBoost model), <code>lightgbm</code> (LightGBM model), <code>shap</code> (SHAP figures).</p>
+<h3 id="windows-qgis-from-the-osgeo4w-or-standalone-installer">Windows (QGIS from the OSGeo4W or standalone installer)</h3>
+<p>If the button fails (no permission, proxy …):</p>
+<ol>
+<li>Start menu → <strong>OSGeo4W Shell</strong> → <em>Run as administrator</em> (for the standalone installer it is the same shell, installed together with QGIS).</li>
+<li>Type:
+   <code>python -m pip install --upgrade pip
+   python -m pip install scikit-learn pandas scipy joblib matplotlib xgboost lightgbm shap</code></li>
+<li>Restart QGIS.</li>
+</ol>
+<h3 id="macos-qgisapp">macOS (QGIS.app)</h3>
+<p>In Terminal:</p>
+<pre><code>/Applications/QGIS.app/Contents/MacOS/bin/python3 -m pip install scikit-learn pandas scipy joblib matplotlib xgboost lightgbm shap
+</code></pre>
+<p>(If your QGIS app has a different name, adjust the path.)</p>
+<h3 id="linux">Linux</h3>
+<p>Debian / Ubuntu with the distribution's QGIS:</p>
+<pre><code>sudo apt install python3-sklearn python3-pandas python3-scipy python3-matplotlib python3-joblib
+python3 -m pip install --user --break-system-packages xgboost lightgbm shap
+</code></pre>
+<p>Other systems: <code>python3 -m pip install --user scikit-learn pandas scipy joblib matplotlib xgboost lightgbm shap</code>.</p>
+<h3 id="if-the-buttons-and-the-shell-do-not-work-use-qgis-itself">If the buttons and the shell do not work – use QGIS itself</h3>
+<p><em>Plugins → Python Console</em>, paste:</p>
+<pre><code class="language-python">import subprocess
+from floodml_geo.core import deps
+cmd = deps.pip_command(['scikit-learn','pandas','scipy','joblib','matplotlib','xgboost','lightgbm','shap'])
+print(' '.join(cmd))
+r = subprocess.run(cmd, capture_output=True, text=True)
+print(r.stdout[-3000:], r.stderr[-3000:])
+</code></pre>
+<p>Restart QGIS afterwards.</p>
+<blockquote>
+<p><strong>Note</strong> Installing a package can upgrade <code>numpy</code>. If QGIS complains about numpy after an installation, install a numpy version that matches your QGIS build, e.g. <code>python -m pip install "numpy&lt;2"</code>.</p>
+</blockquote>
+<hr />
+<h2 id="4-check-that-it-works-the-self-test">4. Check that it works – the self-test</h2>
+<p>Run this once after installing, and again whenever something looks wrong.</p>
+<p><strong>Plugins → FloodML-Geo → Run self-test …</strong> (or Processing Toolbox → FloodML-Geo → <strong>06 Self-test</strong>) → <strong>Run</strong>. Optionally tick <em>Also test XGBoost, LightGBM and SHAP</em>. It takes one to three minutes, uses <strong>no data of yours</strong> and writes only into its output folder (a temporary folder if you leave it empty).</p>
+<p>It builds a small synthetic study area (predictor rasters with 30 m, 100 m and 1500 m cells, a <strong>flood record raster</strong> with 0/1 pixels, random points and a 500 m grid – the points and the grid have <strong>no label at all</strong>) and then runs the real tools in the real order, comparing every result with a known answer:</p>
+<table>
+<thead>
+<tr>
+<th>Step</th>
+<th>What is verified</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Environment</td>
+<td>QGIS, GDAL and the Python packages are present.</td>
+</tr>
+<tr>
+<td>01 points + flood raster</td>
+<td>The <code>flood</code> column equals the flood-raster pixel under every point; elevation is the direct pixel value; land-cover codes are intact; the metadata sidecar is right.</td>
+</tr>
+<tr>
+<td>01 grid cells + flood raster</td>
+<td>The flood share of every cell equals the exact average of its 5 × 5 flood pixels; a 1500 m raster under 500 m cells reproduces a linear surface exactly (resampling works); a 30 m raster is averaged correctly.</td>
+</tr>
+<tr>
+<td>01 safeguards</td>
+<td>The flood raster as a predictor is <strong>refused</strong>; a table with only flooded points is <strong>refused</strong>.</td>
+</tr>
+<tr>
+<td>02 quality check</td>
+<td>Report written, no blocking problem on a clean table.</td>
+</tr>
+<tr>
+<td>03 train + validate</td>
+<td>Models reach a cross-validated AUC above 0.7; report and ≥ 8 figures written.</td>
+</tr>
+<tr>
+<td>04 susceptibility map</td>
+<td>Values within 0–1, rasters with three different grids aligned, class table sums to 100 %, the <code>.qml</code> styles load in QGIS.</td>
+</tr>
+<tr>
+<td>05 independent test</td>
+<td>Saved models score above chance on a second point set.</td>
+</tr>
+<tr>
+<td>07 helper</td>
+<td>Drawn points carry the right labels; tool 01 reads them back.</td>
+</tr>
+</tbody>
+</table>
+<p>The log shows <code>[PASS]</code> or <code>[FAIL]</code> per step and the end says <strong>SELF-TEST PASSED: everything works.</strong> An HTML report <code>selftest_report.html</code> in the output folder lists every step and the installed package versions. If a step fails, the message tells you what was wrong (for example <em>Python packages missing: scikit-learn</em>); send the report to whoever supports you.</p>
+<p>The self-test is itself tested: the package's own test suite sabotages a tool on purpose and checks that the self-test then says FAILED. The scores on synthetic data are a test of the <em>mechanics</em>, not a scientific result.</p>
+<hr />
+<h2 id="5-prepare-your-data">5. Prepare your data</h2>
+<p>You need:</p>
+<ul>
+<li><strong>A flood record raster</strong> – one raster where <strong>1 = flooded and 0 = not flooded</strong> (for example the mapped extent of a past event, rasterised). It is the <strong>target variable</strong>: it goes into tool 01 in its own box, next to – but separate from – the predictor rasters. If your map only has values on flooded pixels and dry land is NoData, tick <em>read NoData as no flood</em> (advanced option); if "flood" is stored as another value (255 …) set <em>pixel value that means flood</em>.</li>
+<li><strong>Locations</strong> – either a <strong>point</strong> layer or a <strong>polygon grid</strong> (for example 500 m or 1 km cells). These layers only say <em>where</em> to read the rasters; they need <strong>no flood label field</strong>. For points, make sure both flooded and dry places are included (the flood raster supplies the 0/1 at every point). A grid covering the whole study area gives both classes automatically. No points yet? Tool 07 can draw balanced points from the flood raster.</li>
+<li><strong>Predictor rasters</strong> – elevation, slope, rainfall, distance to river, land cover … They may have <strong>different cell sizes, extents and CRSs</strong>; tool 01 handles that. Local GeoTIFF files (or anything GDAL reads from disk). Each raster must be georeferenced, north-up (not rotated).</li>
+<li><em>(optional)</em> A <strong>group / event ID</strong> field: records that belong together (same flood event, same polygon cut into pieces, same site visited repeatedly). They will always stay in the same validation fold.</li>
+</ul>
+<p>Good practice before you start:</p>
+<ol>
+<li><strong>Name the raster layers</strong> in the <em>Layers</em> panel exactly as you want the predictor names: <code>elevation</code>, <code>slope</code>, <code>rainfall</code>, <code>dist_river</code>, <code>landcover</code>. The tool lower-cases the name and turns spaces and symbols into <code>_</code>. These names are what tool 04 matches later.</li>
+<li>Use a <strong>projected CRS in metres</strong> for the points / grid if possible (e.g. WGS 84 / UTM 46N for Sylhet). If your layer is in degrees the tool computes x/y in the matching UTM zone automatically.</li>
+<li>Include <strong>non-flood</strong> records that are representative of the area (not only the easiest dry places) and from the same period and accuracy as the flood records.</li>
+<li>Use only predictors known <strong>before</strong> the flood. Never use a layer derived from the flood extent or from post-event imagery. The flood record raster is the target: tool 01 refuses to take it as a predictor as well.</li>
+</ol>
+<hr />
+<h2 id="6-quick-start">6. Quick start</h2>
+<ol>
+<li><strong>Load</strong> the flood record raster, the predictor rasters and your point layer <em>or</em> grid layer in QGIS. Rename the predictor rasters (<code>elevation</code>, <code>slope</code>, …).</li>
+<li><em>(First time only)</em> <strong>Plugins → FloodML-Geo → Run self-test</strong> and wait for <strong>SELF-TEST PASSED</strong>.</li>
+<li><strong>01 Build the training table</strong> – <em>Points OR grid polygons</em>: your layer. <em>Flood record raster = TARGET</em>: the 0/1 raster. <em>Predictor rasters</em>: tick all predictors (<strong>not</strong> the flood raster); tick the land-cover raster also under <em>Categorical rasters</em>. Set <em>Training table (CSV)</em> to a file, <strong>Run</strong>. Check the log: how many flood / non-flood records, how many cells were resampled finer.</li>
+<li><strong>02 Quality check</strong> – pick the CSV, choose an output folder, <strong>Run</strong>. Open <code>dataset_report.html</code>. Fix every item marked <em>BLOCKING</em>.</li>
+<li><strong>03 Train and validate</strong> – pick the CSV, models (start with <em>Random Forest</em> + <em>Logistic regression</em>), <em>Validation design = Spatial blocks</em>, folds 5, block size 0 (automatic). In <em>Directions</em> you may type <code>elevation:reverse, rainfall:positive</code>. <strong>Run</strong>. Open <code>report.html</code>.</li>
+<li><strong>04 Map flood susceptibility</strong> – pick <code>RF_model.joblib</code> (click <strong>…</strong> and add the file; several models give an ensemble), the rasters, keep <em>Align rasters automatically</em> ticked, choose <em>Classified map = Quantile</em>, save the raster. The result opens already styled.</li>
+<li><em>(Strongly recommended for a paper)</em> <strong>05 Independent test</strong> with a second dataset.</li>
+</ol>
+<hr />
+<h2 id="7-tool-01-build-the-training-table">7. Tool 01 – Build the training table</h2>
+<p><strong>Where does the flood record raster (0/1) go?</strong> Into its own box in tool 01, <strong>Flood record raster = TARGET</strong>. Tool 01 reads it exactly like a predictor raster – at your points or inside your grid cells – but writes the result to the column <strong><code>flood</code></strong>, the variable the models will learn to predict. All other rasters become predictor columns.</p>
+<pre><code> flood_record.tif  (0/1) ───────────►  column  flood           ← target
+ elevation.tif, rainfall.tif, … ────►  columns elevation, rainfall, …  ← predictors
+ points  or  grid polygons  ────────►  where to read (no label field needed)
+                                        ▼
+                                  training.csv:  record_id, flood, x, y, elevation, rainfall, …
+</code></pre>
+<p>Creates the <strong>raw</strong> training table. Nothing is normalised, imputed or selected here: all of that happens later <em>inside each cross-validation fold</em>, which is what keeps the validation honest.</p>
+<h3 id="parameters">Parameters</h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Points OR grid polygons</strong></td>
+<td>Point or polygon layer: <em>where</em> to read. Multi-point features use their first point (a warning is given).</td>
+</tr>
+<tr>
+<td><strong>Flood record raster = TARGET</strong></td>
+<td>The 0/1 raster. Refused if the same raster is also among the predictors. Any CRS / cell size / extent.</td>
+</tr>
+<tr>
+<td><strong>Predictor rasters</strong></td>
+<td>All predictors. The <strong>layer name</strong> is the predictor name.</td>
+</tr>
+<tr>
+<td><strong>Exclude places where this raster has the value … (optional)</strong></td>
+<td><strong>Permanent water.</strong> A river or lake is never "flooded" in a flood record, so without this option it becomes <em>non-flood</em> and the model learns "water = safe" (the river channel then appears as <em>Very low</em> susceptibility). Give a raster in which the value (default 1) marks open water or other places that cannot flood. Points on that value, and grid cells at least half covered by it, are left out of the table. Apply the same mask to the final map.</td>
+</tr>
+<tr>
+<td><strong>Categorical rasters</strong></td>
+<td>Subset of the predictors (land cover, soil, geology, …). They are <strong>never interpolated or averaged</strong>: points get the pixel class, polygons the <strong>majority class</strong>; tool 03 one-hot encodes them.</td>
+</tr>
+<tr>
+<td><strong>Group / event ID field</strong></td>
+<td>Optional; written as <code>group_id</code>.</td>
+</tr>
+<tr>
+<td><strong>POINTS: how to read a predictor raster</strong></td>
+<td><em>Direct pixel value</em> (default) or <em>Bilinear</em> between the four nearest pixel centres. The flood label is <strong>always</strong> the pixel value (never interpolated).</td>
+</tr>
+<tr>
+<td><strong>POLYGONS: resample finer…</strong></td>
+<td>Switch for the automatic fine-resampling described below (default on).</td>
+</tr>
+<tr>
+<td><strong>POLYGONS: a cell is "flood" when this share of it is flooded</strong></td>
+<td>Default <strong>0.5</strong>. The cell gets <code>flood = 1</code> when the flooded share of its area is at least this value.</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> flood-record value / NoData as no flood</td>
+<td>Pixel value that means flood (default 1); read NoData <em>inside</em> the raster as "no flood" (for maps that store only the flooded pixels).</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> label field</td>
+<td>Only if you have <strong>no</strong> flood raster: an existing 0/1 field of the layer (use one or the other, never both).</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> drop cells smaller than … of the median cell area</td>
+<td>Grids clipped to a study-area boundary contain tiny edge cells whose values rest on a few pixels. 0 (default) keeps all and prints a warning when such cells exist; 0.5 removes cells smaller than half of the median cell area.</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> interpolation</td>
+<td>Predictors only: bilinear (default, smooth) or nearest when resampling finer. The flood raster always uses nearest, so the flooded share stays exact.</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> minimum samples across a cell</td>
+<td>Default <strong>8</strong>. See below.</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> minimum share of valid data</td>
+<td>Default <strong>0.5</strong>: a cell is left blank if less than half of it is covered by valid (non-nodata) raster data.</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> raster band</td>
+<td>Band used from every predictor raster (default 1).</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> metric CRS</td>
+<td>CRS for <code>x</code>, <code>y</code> and cell sizes. Default: the layer CRS if it is in metres, else the matching UTM zone.</td>
+</tr>
+<tr>
+<td><strong>Training table (CSV)</strong></td>
+<td>Output. A <code>.metadata.json</code> (what was done, target and predictor lists, cell size, raster info, file hash) and a <code>.csvt</code> are written next to it.</td>
+</tr>
+<tr>
+<td><strong>Layer with the extracted values</strong></td>
+<td>Optional: the same records as a QGIS layer, to inspect or map the extracted values.</td>
+</tr>
+</tbody>
+</table>
+<p>Output columns: <code>record_id, flood, x, y, [group_id], &lt;predictors…&gt;</code> (<strong><code>flood</code></strong> is the 0/1 target column) and, for grid polygons, <code>flood_fraction</code> (the flooded share of the cell, 0–1; information only, never used as a predictor) and <code>extract_min_valid_fraction</code> (QA only).</p>
+<h3 id="how-the-flood-label-is-obtained">How the flood label is obtained</h3>
+<table>
+<thead>
+<tr>
+<th>Locations</th>
+<th>Flood label</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Points</strong></td>
+<td>The value of the flood-record pixel that contains the point (0 or 1). Never interpolated. A point outside the flood raster, or on NoData, has no label and is <strong>dropped</strong> (counted in the log).</td>
+</tr>
+<tr>
+<td><strong>Grid polygons</strong></td>
+<td>The <strong>flooded share</strong> of the cell: area-weighted mean of the 0/1 pixels inside the exact cell outline (written as <code>flood_fraction</code>). <code>flood = 1</code> when the share is ≥ the threshold (default 0.5). A cell smaller than the flood-raster pixel is resampled onto a finer lattice (nearest neighbour), so the share stays exact; a cell larger than the pixel uses all pixels inside it. A cell with too little valid flood-raster coverage has no label and is dropped.</td>
+</tr>
+</tbody>
+</table>
+<p>Refusals (with a clear message, nothing is written): the flood raster is also a predictor; the flood raster holds values other than 0 and the flood value (the message lists them); only one class would remain (for example every point lies on a flooded pixel – draw dry points too, use a grid, or use tool 07).</p>
+<h3 id="how-predictor-values-are-obtained-for-points-direct-extraction">How predictor values are obtained for points (direct extraction)</h3>
+<p>Each raster is read <strong>directly at the point</strong>: the value of the pixel that contains the point (or a bilinear blend if you choose it). Points outside the raster or on nodata give a blank. Rasters in another CRS are handled: the point is transformed to the raster's CRS first.</p>
+<h3 id="how-predictors-are-obtained-for-grid-polygons-zonal-mean-with-careful-resampling">How predictors are obtained for grid polygons (zonal mean, with careful resampling)</h3>
+<p>For every cell and every raster the tool takes the <strong>area-weighted mean</strong> of the raster inside the exact cell outline (holes and multipart cells are respected). It does this with a regular lattice of sample points over the cell, aligned with the raster's pixels:</p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Pixel smaller than the cell</strong> (e.g. 30 m DEM, 500 m cell)</td>
+<td>Ordinary zonal mean: every pixel in the cell contributes, edge pixels in proportion to the part inside the cell.</td>
+</tr>
+<tr>
+<td><strong>Pixel about as large as, or larger than, the cell</strong> (e.g. 1 km rainfall, 500 m cell)</td>
+<td>The raster is <strong>resampled virtually to a finer grid</strong> so that at least <strong>8 samples</strong> span each cell side (the integer sub-division <code>k</code> of the native pixel is chosen per cell). With bilinear interpolation a smooth surface is obtained, the mean is that of the <em>finer</em> surface. <strong>No giant temporary raster is created</strong>, and the result does not depend on how the cell happens to fall on the coarse pixels.</td>
+</tr>
+<tr>
+<td><strong>Categorical raster</strong></td>
+<td>Nearest value only (never blended); the <strong>majority</strong> class inside the cell.</td>
+</tr>
+<tr>
+<td><strong>Raster in a different CRS</strong></td>
+<td>Cell outlines are densified and reprojected to the raster CRS (the log says so).</td>
+</tr>
+<tr>
+<td><strong>Raster smaller than the study area / nodata</strong></td>
+<td>Cells with &lt; 50 % valid coverage are left blank; the log counts them.</td>
+</tr>
+</tbody>
+</table>
+<p>The log reports for every raster how many cells had to be resampled finer, the median cell size in pixels, how many cells fell outside the raster, and how many were blank. The same numbers are stored in the <code>.metadata.json</code>.</p>
+<blockquote>
+<p><strong>Interpolation caveat.</strong> Resampling a coarse raster finer <em>adds no new information</em>; it only avoids the artefact of counting a single coarse pixel as the cell value. If the raster is much coarser than the cell, treat that predictor with care in the discussion of your results.</p>
+</blockquote>
+<p>Rows with <strong>no</strong> predictor value at all (outside every raster) are dropped (count in the log). Rows that miss only some predictors are kept and median-imputed later inside each training fold (tool 02 lists them).</p>
+<h3 id="optional-tool-07-draw-sample-points-from-the-flood-raster">Optional tool 07 – draw sample points from the flood raster</h3>
+<p>You do <strong>not</strong> need it in the normal workflow. Use it only when you have no points and want a ready, balanced set of locations: <em>N flood points</em> from the flooded pixels and <em>ratio × N</em> non-flood points from the dry pixels, with an optional minimum distance (use at least the pixel size of your coarsest predictor), a seed, and options for NoData and other pixel values. Give the resulting point layer to tool 01 together with the same flood raster. Scores then reflect that sampling ratio (balanced by default), not the real flood prevalence.</p>
+<hr />
+<h2 id="8-tool-02-quality-check">8. Tool 02 – Quality check</h2>
+<p>Run it on the CSV from tool 01 (or your own table), <strong>before</strong> training. It writes <code>dataset_report.html</code>, CSV tables and figures to the output folder and prints the verdict in the log.</p>
+<ul>
+<li><strong>Blocking</strong> (shown as warnings): one class only; fewer than 10 minority records per fold; constant predictor; text in a numeric predictor; blank or degree coordinates.</li>
+<li><strong>Advice</strong>: class imbalance, &gt; 5 % missing values, single predictor with AUC ≥ 0.97 (possible leakage), VIF ≥ 10 or |ρ| ≥ 0.9, duplicated locations, many or rare categories, clustered labels (Moran's I) and a <strong>suggested block size</strong>.</li>
+</ul>
+<p>Leave <em>Predictors</em> empty to use all predictors recorded by tool 01.</p>
+<hr />
+<h2 id="9-tool-03-train-and-validate">9. Tool 03 – Train and validate</h2>
+<h3 id="parameters_1">Parameters</h3>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Training table (CSV)</strong></td>
+<td>From tool 01. The <code>.metadata.json</code> next to it is read automatically (predictors, categorical rasters, cell size).</td>
+</tr>
+<tr>
+<td><strong>Predictor columns</strong></td>
+<td>Empty = all from tool 01. Otherwise a comma list. The target <code>flood</code> and <code>flood_fraction</code> can never be predictors.</td>
+</tr>
+<tr>
+<td><strong>Directions</strong></td>
+<td><code>name:positive</code> (higher → more susceptible, e.g. rainfall), <code>name:reverse</code> (e.g. elevation, distance to river), others unscaled. Scaling uses the <strong>training fold's</strong> min and max. Tree models do not enforce this relationship.</td>
+</tr>
+<tr>
+<td><strong>Categorical predictors</strong></td>
+<td>Empty = from tool 01.</td>
+</tr>
+<tr>
+<td><strong>Models</strong></td>
+<td>Random Forest · XGBoost · LightGBM · HistGB · Logistic regression (a useful baseline).</td>
+</tr>
+<tr>
+<td><strong>Validation design</strong></td>
+<td><strong>Spatial blocks</strong> (recommended) · <strong>spatial clusters</strong> (k-means on x/y) · <strong>group / event ID</strong> · random stratified (comparison only; usually optimistic).</td>
+</tr>
+<tr>
+<td><strong>Number of folds</strong></td>
+<td>5 is a good default.</td>
+</tr>
+<tr>
+<td><strong>Spatial block size (m)</strong></td>
+<td><strong>0 = automatic</strong>: the median autocorrelation range of the label and predictors (semivariogram), capped so that enough blocks exist. Typical 3–30 km; look at the variogram figure.</td>
+</tr>
+<tr>
+<td><strong>Group column</strong></td>
+<td>Empty = <code>group_id</code> if present. Linked records never cross folds, even when they lie in different blocks.</td>
+</tr>
+<tr>
+<td><strong>Tune hyper-parameters</strong></td>
+<td>Nested random search inside each outer training set (slower, no leakage).</td>
+</tr>
+<tr>
+<td><strong>Permutation importance / SHAP / Moran's I</strong></td>
+<td>Held-out permutation importance; SHAP (needs <code>shap</code>); spatial autocorrelation of out-of-fold residuals.</td>
+</tr>
+<tr>
+<td><strong>Draw figures + HTML report</strong> and <strong>Figure formats</strong></td>
+<td>PNG, plus vector PDF / SVG and TIFF for journals; <em>Advanced:</em> dpi (default 300).</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> buffer</td>
+<td>Removes training records within <em>d</em> m of the validation block (buffered CV).</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> class weighting</td>
+<td><code>balanced</code> (default) or none.</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> bootstrap</td>
+<td>Replicates for 95 % intervals (default 300; 0 = off).</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> threshold</td>
+<td>Probability cut-off for class metrics (default 0.5). Fix it in advance.</td>
+</tr>
+<tr>
+<td><em>Advanced:</em> seed, cores</td>
+<td>Reproducibility, speed.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="output-folder">Output folder</h3>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Content</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>report.html</code></td>
+<td><strong>Open first.</strong> Headline table with 95 % CIs, validation design, all figures, warnings, caveats. Works offline, can be emailed.</td>
+</tr>
+<tr>
+<td><code>models/&lt;Model&gt;_model.joblib</code></td>
+<td>Deployment models for tools 04 / 05. Only open files you made or trust.</td>
+</tr>
+<tr>
+<td><code>tables/</code></td>
+<td><code>model_comparison.csv</code>, <code>fold_metrics.csv</code>, <code>out_of_fold_predictions.csv</code>, <code>permutation_importance_heldout.csv</code>, SHAP tables, <code>moran_oof_residuals.csv</code>, <code>spatial_autocorrelation_ranges.csv</code>, <code>training_data_used.csv</code>.</td>
+</tr>
+<tr>
+<td><code>figures/</code></td>
+<td>Per model: ROC, precision–recall, confusion matrix, calibration, score distribution, fold metrics, importance, SHAP summary + dependence, spatial diagnostics. Overall: model comparison, CV-folds map, autocorrelation / block-size figure.</td>
+</tr>
+<tr>
+<td><code>run_manifest.json</code></td>
+<td>Settings, data hash, package versions, normalisation, CV plan, warnings: everything to reproduce the run.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="10-tool-04-map-susceptibility">10. Tool 04 – Map susceptibility</h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Model file(s)</strong></td>
+<td>One or more <code>*_model.joblib</code>. Several → <strong>ensemble mean</strong>. Click <strong>…</strong> and add the files (several files = ensemble).</td>
+</tr>
+<tr>
+<td><strong>Predictor rasters</strong></td>
+<td>Layer name (or file name) must equal the predictor name. The log shows which raster was matched to which predictor.</td>
+</tr>
+<tr>
+<td><strong>Align rasters automatically</strong></td>
+<td>Warps every raster onto one grid. Resampling is chosen from the pixel-size ratio: <strong>bilinear</strong> (or <strong>average</strong> when the output pixel is &gt; 1.5× larger than the source pixel) for continuous data, <strong>nearest</strong> (or <strong>mode</strong>) for categorical. Switched off, any difference in CRS, pixel size, origin or extent stops the run with an exact list of what differs.</td>
+</tr>
+<tr>
+<td><strong>Reference raster</strong></td>
+<td>Defines the output grid (CRS, extent, alignment). Default: the first predictor.</td>
+</tr>
+<tr>
+<td><strong>Output cell size</strong></td>
+<td>0 = reference cell size. <strong>If you trained on grid cells (e.g. 1 km), enter that size</strong>: predictors then have the same support as in training. A warning is given if the map pixel is much finer than the training cells.</td>
+</tr>
+<tr>
+<td><strong>Classified map</strong></td>
+<td>None · Quantile (equal area) · Equal interval · Natural breaks (Jenks) · Custom (e.g. <code>0.2, 0.4, 0.6, 0.8</code>), 2–9 classes with labels Low … Very high.</td>
+</tr>
+<tr>
+<td><strong>Optional outputs</strong></td>
+<td><em>Between-model spread</em> (standard deviation, needs ≥ 2 models), <em>Class map</em>, <em>Extrapolation map</em> (number of predictors outside the training range), <em>Class area table (CSV)</em>, <em>Preview PNG</em> (map with scale bar and north arrow).</td>
+</tr>
+</tbody>
+</table>
+<p>Outputs are GeoTIFF (NoData = −9999; class map NoData = 0) with <code>.qml</code> styles next to them, so they open in QGIS already coloured. Large rasters are processed in tiles.</p>
+<p><strong>Read the map as a relative ranking.</strong> The score depends on the flood / non-flood sampling ratio. It is not an annual probability, depth or risk.</p>
+<hr />
+<h2 id="11-tool-05-independent-test">11. Tool 05 – Independent test</h2>
+<p>Cross-validation on one dataset still reuses one region and one event. The honest test is a <strong>second dataset</strong>: another catchment, event or year.</p>
+<ol>
+<li>Run <strong>tool 01</strong> for the independent area / event: its <strong>flood record raster</strong>, its points or grid, and the predictor rasters for that area / period with the <strong>same raster layer names</strong> as in training.</li>
+<li>Run <strong>tool 05</strong>: the model file(s), the new CSV, an optional group column or bootstrap block size, a threshold (default 0.5, <em>not</em> tuned on the test data).</li>
+</ol>
+<p><strong>The test table must not contain the training records.</strong> If you give tool 05 the same CSV that you trained on, the models have already seen every record and the scores (ROC-AUC near 1.0) only show how well they remember. Tool 05 compares the coordinates (or predictor values) with the saved models and, when 20 % or more of the test records are identical to training records, prints <strong>NOT INDEPENDENT</strong> in the log and at the top of the report. Do not report such results. Models saved by versions before 0.3.1 cannot be checked.</p>
+<p>Output: <code>independent_test_report.html</code>, metrics with confidence intervals next to the cross-validated values, a warning if the test score is much lower, the share of test records outside the training range, and the usual figures.</p>
+<hr />
+<h2 id="12-reading-the-report-and-the-figures">12. Reading the report and the figures</h2>
+<ul>
+<li><strong>ROC-AUC</strong> – ranking quality; 0.5 = chance. <strong>PR-AUC</strong> – more informative when flood records are rare. <strong>TSS</strong> (sensitivity + specificity − 1) and <strong>MCC / kappa</strong> – threshold-based skill. <strong>Brier / ECE</strong> – calibration quality.</li>
+<li><strong>Shown as <code>0.87 [0.82–0.91]</code></strong> – pooled out-of-fold value with a 95 % <em>cluster-bootstrap</em> interval (whole blocks resampled, so spatial dependence is respected).</li>
+<li><strong>Fold AUC dots</strong> show how much the score varies from region to region. A large spread means the model transfers unevenly.</li>
+<li><strong>Calibration</strong> – dots near the diagonal mean the scores behave like probabilities of <em>your sample</em>; the bars show the score distribution.</li>
+<li><strong>Permutation importance</strong> – drop in held-out AUC when a predictor is shuffled; correlated predictors share importance. <strong>SHAP</strong> – how each predictor moves the prediction (deployment model; not causal).</li>
+<li><strong>Spatial diagnostics</strong> – residual map and correlogram. Moran's I clearly above 0 means structure the predictors do not capture.</li>
+<li><strong>Variogram figure</strong> – the range of spatial autocorrelation for each variable and the recommended block size.</li>
+<li><strong>Extrapolation raster</strong> – 0 means inside the training range for all predictors; ≥ 1 means be careful.</li>
+</ul>
+<p>All figures use one colour-blind-safe palette and journal column widths (89 / 135 / 183 mm). Choose <em>PDF</em> or <em>SVG</em> in tool 03 for editable vector text.</p>
+<hr />
+<h2 id="13-recommended-settings-for-a-thesis-or-paper">13. Recommended settings for a thesis or paper</h2>
+<ol>
+<li>Tool 01 with a <strong>metric CRS</strong>, the flood record raster as target, categorical rasters declared, a <code>group_id</code> for events.</li>
+<li>Tool 02: resolve every blocking issue; note the Moran's I of the label.</li>
+<li>Tool 03: <strong>Spatial blocks</strong>, block size from the advisor, 5 folds, models RF + XGBoost + LightGBM + Logistic regression (baseline), <strong>permutation importance on</strong>, <strong>SHAP on</strong> for the best model, bootstrap 1000, figures as <strong>PNG + PDF</strong>, tuning on if the data set is large enough.</li>
+<li>Report the <strong>pooled out-of-fold</strong> table with CIs and the validation design (block size, folds, buffer). Do not select "the best model" from these numbers and then quote them as unbiased: confirm with <strong>tool 05</strong>.</li>
+<li>Tool 04: ensemble of the models you trust, class map by <strong>quantile</strong> or <strong>natural breaks</strong>, <strong>extrapolation map</strong> shown next to the map.</li>
+<li>Keep <code>run_manifest.json</code> and the CSV <code>.metadata.json</code> with the thesis data.</li>
+</ol>
+<p>Before you trust a map, also check:</p>
+<ul>
+<li><strong>Permanent water</strong> (rivers, lakes) is excluded in tool 01 and masked on the final map; otherwise the water channel is learned as "non-flood".</li>
+<li><strong>Nearly duplicate predictors</strong> (for example NDVI and NDWI, Spearman ≈ ±0.98, VIF &gt; 10): keep one, or accept that their importance is shared.</li>
+<li><strong>Image dates</strong> of satellite predictors (NDVI, NDWI, SAR): they must be <strong>before</strong> the flood. An image taken during or after the event shows the flood itself and leaks the answer.</li>
+<li><strong>Block size</strong>: if tool 02 says the block size was <em>capped</em> below the autocorrelation range, neighbouring blocks still share information; repeat tool 03 with a buffer (for example 500 m) or larger blocks and fewer folds, and compare the scores.</li>
+<li><strong>Units</strong>: distance rasters in degrees work for the models but are hard to interpret; metres are better.</li>
+<li><strong>Class maps</strong>: <em>Equal interval</em> cuts the score at 0.2, 0.4, … and, when most records are flood, puts most of the area into <em>Very high</em>. <em>Quantile</em> or <em>Natural breaks</em> rank the area relative to itself.</li>
+</ul>
+<p>Use the checklist in <code>LEAKAGE_PREVENTION_CHECKLIST.md</code> for what only you can verify.</p>
+<hr />
+<h2 id="14-troubleshooting">14. Troubleshooting</h2>
+<table>
+<thead>
+<tr>
+<th>Message / symptom</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Python packages missing in QGIS: scikit-learn …</em></td>
+<td>Section 3. Restart QGIS afterwards. Tool 01, tool 07 and the menu work without them; tools 02 – 06 need them.</td>
+</tr>
+<tr>
+<td><em>ModuleNotFoundError: No module named 'sklearn'</em> when QGIS starts (traceback through <code>extract.py → core.validation → splitters</code>)</td>
+<td>You have the old 0.2.0 build. Uninstall it, restart QGIS, install the latest ZIP (section 2) and install the Python packages (section 3). From 0.2.1 on the plugin always loads; a missing package only produces a friendly message when you run tool 02 – 06.</td>
+</tr>
+<tr>
+<td><em>Model needs xgboost / lightgbm / shap</em></td>
+<td>Install the package (section 3) or untick that model / SHAP.</td>
+</tr>
+<tr>
+<td><em>The flood raster must contain only 0 (no flood) and 1 (flood). It also contains: …</em></td>
+<td>The flood record has other values (for example 255 for "no data" that is not declared, or 2). Declare the NoData value, set the right <em>flood value</em> (advanced), or reclassify the raster.</td>
+</tr>
+<tr>
+<td><em>The table would contain no non-flood record</em></td>
+<td>All your points fall on flooded pixels. Add dry points, use a grid polygon layer, or draw balanced points with tool 07.</td>
+</tr>
+<tr>
+<td><em>… is the flood record raster AND a predictor</em></td>
+<td>Untick the flood raster in the predictor list. The target can never be a predictor.</td>
+</tr>
+<tr>
+<td><em>Where does the flood label come from?</em></td>
+<td>Select the <em>Flood record raster</em>; or – without a raster – the label field in the advanced options. Never both.</td>
+</tr>
+<tr>
+<td><em>record(s) have no flood-record value … dropped</em></td>
+<td>Those points / cells lie outside the flood raster or on NoData. If dry land is NoData in your flood map, tick <em>read NoData as no flood</em> (advanced).</td>
+</tr>
+<tr>
+<td><em>Layer … is not a local GDAL raster</em></td>
+<td>Export WMS / online layers to GeoTIFF first.</td>
+</tr>
+<tr>
+<td><em>No raster matches predictor(s) …</em> (tool 04)</td>
+<td>Rename the raster layers to the predictor names shown in the message.</td>
+</tr>
+<tr>
+<td><em>Rasters do not share one grid …</em></td>
+<td>Tick <strong>Align rasters automatically</strong>, or set a reference raster / cell size.</td>
+</tr>
+<tr>
+<td><em>Only N independent group(s) for K folds</em></td>
+<td>Reduce the block size or folds, or check that coordinates are in metres. A group ID that spans the whole study area merges all blocks: use a more local ID.</td>
+</tr>
+<tr>
+<td><em>Coordinates look like degrees</em></td>
+<td>Re-run tool 01 (it writes metric x/y) or reproject the points.</td>
+</tr>
+<tr>
+<td><em>Many cells blank / outside raster</em> (tool 01)</td>
+<td>The raster does not cover the cells, or the CRS of the layer or raster is wrong. Check <em>Layer → Set CRS</em>.</td>
+</tr>
+<tr>
+<td><em>NOT INDEPENDENT: … % of the test records are identical to training records</em> (tool 05)</td>
+<td>The test CSV is (partly) the training data. Build it from another area, event or year.</td>
+</tr>
+<tr>
+<td>The river or lakes appear as <em>Very low</em> susceptibility on the map</td>
+<td>Permanent water was labelled non-flood. Re-run tool 01 with the exclusion raster (permanent water) and mask the final map with the same raster.</td>
+</tr>
+<tr>
+<td>Test AUC much lower than cross-validated AUC</td>
+<td>The model does not transfer to the new area; look at the extrapolation share and the predictors' distributions (tool 02 on both tables).</td>
+</tr>
+<tr>
+<td>Run is slow</td>
+<td>Fewer models, no tuning, no SHAP, lower bootstrap, set <em>CPU cores</em>. SHAP samples at most 500 rows by default.</td>
+</tr>
+<tr>
+<td>QGIS 4 / Qt6</td>
+<td>The plugin declares Qt6 support but has so far been tested on QGIS 3.34 only. Report problems with the log text.</td>
+</tr>
+</tbody>
+</table>
+<p>To see details, open the <strong>Log</strong> tab of the tool dialog (and <em>Processing → Results Viewer</em> for earlier runs).</p>
+<hr />
+<h2 id="15-limits-and-interpretation">15. Limits and interpretation</h2>
+<ul>
+<li>Susceptibility ≠ probability, depth, velocity, duration or risk.</li>
+<li>Spatial CV measures transfer <strong>within the study region</strong>. Another catchment or year needs tool 05.</li>
+<li>Scores reflect the <strong>sampling design</strong> (how non-flood points were chosen). Poor non-flood sampling gives impressive but meaningless numbers.</li>
+<li>Predictor <em>direction</em> does not constrain tree models; SHAP and importance describe the model, not causes.</li>
+<li>Grid-polygon training and pixel-level mapping have different support; set the output cell size accordingly.</li>
+<li>Models are saved with <em>joblib</em> (pickle). Do not open model files from untrusted sources.</li>
+<li>Tested: unit and end-to-end tests with real GDAL and a headless QGIS 3.34 on Linux, plus the built-in self-test (tool 06) that you can run on your own installation. <strong>Not yet tested by the developer:</strong> the on-screen dialogs on your machine, Windows / macOS installations, QGIS 4 – tool 06 tells you whether the processing part works on yours.</li>
+</ul>
+<hr />
+<h2 id="16-running-it-from-the-python-console">16. Running it from the Python console</h2>
+<p>Every tool is a normal Processing algorithm, so it can be scripted or used in the Graphical Modeler:</p>
+<pre><code class="language-python">import processing
+csv = '/data/train.csv'
+rasters = ['/data/elevation.tif', '/data/rainfall.tif', '/data/landcover.tif']
+# 01 flood record raster (target) + predictor rasters at points or grid cells -&gt; CSV
+processing.run('floodmlgeo:extract_predictors', {
+    'INPUT': '/data/points_or_grid.gpkg',          # no label field needed
+    'FLOOD_RASTER': '/data/flood_record.tif',      # 0 / 1  -&gt; column &quot;flood&quot;
+    'RASTERS': rasters, 'CATEGORICAL': ['/data/landcover.tif'], 'OUTPUT': csv})
+# 02 quality check
+processing.run('floodmlgeo:check_dataset', {'DATA': csv, 'OUTPUT': '/data/check'})
+# 03 train + validate
+res = processing.run('floodmlgeo:train_models', {
+    'DATA': csv, 'DIRECTIONS': 'elevation:reverse, rainfall:positive',
+    'MODELS': [0, 1], 'CV': 0, 'FOLDS': 5, 'BLOCK': 0, 'OUTPUT': '/data/run1'})
+# 04 map
+processing.run('floodmlgeo:predict_raster', {
+    'MODELS': [res['MODEL_RF']], 'RASTERS': rasters,
+    'ALIGN': True, 'RES': 1000, 'CLASSES': 1, 'NCLASS': 5, 'OUTPUT': '/data/susceptibility.tif'})
+# 06 self-test
+processing.run('floodmlgeo:selftest', {'FULL': False, 'OUTPUT': '/data/selftest'})
+</code></pre>
+<p>Model indices for <code>MODELS</code> in tool 03: 0 = RF, 1 = XGBoost, 2 = LightGBM, 3 = HistGB, 4 = LogReg.</p>
+<hr />
+<p><em>FloodML-Geo is developed by <strong>Md Mominul Islam</strong>.</em></p></main></body></html>
