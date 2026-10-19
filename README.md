@@ -53,7 +53,7 @@ These come from one run on 3,908 grid cells (100 m) with five predictors. Out-of
 |---|---|
 | <img src="docs/img/cv_compare.png" width="420" alt="ROC and PR curves"> | <img src="docs/img/cv_rf_calibration.png" width="300" alt="Reliability diagram"> |
 
-More figures, all tables and the complete reports are in the [gallery](https://YOUR-USERNAME.github.io/FloodML-Geo/).
+More figures, all tables and the complete reports are in the [gallery](https://mominul58.github.io/FloodML-Geo/).
 
 ### Read this before you copy the numbers
 
@@ -94,7 +94,7 @@ Requires QGIS 3.28 or newer (tested with 3.34 and 3.44).
 5. Run **04 Map susceptibility** with the same predictor rasters (never the flood raster).
 6. Test on another area or year with **05 Independent test**.
 
-The full walk-through is in the [user guide](docs/USER_GUIDE.md) ([HTML version](https://YOUR-USERNAME.github.io/FloodML-Geo/USER_GUIDE.html)).
+The full walk-through is in the [user guide](docs/USER_GUIDE.md) ([HTML version](https://mominul58.github.io/FloodML-Geo/USER_GUIDE.html)).
 
 ## What is in this repository
 
