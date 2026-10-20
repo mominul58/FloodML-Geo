@@ -6,7 +6,7 @@ type: software
 authors:
   - given-names: "Md Mominul"
     family-names: "Islam"
-repository-code: "https://github.com/YOUR-USERNAME/FloodML-Geo"
+repository-code: "https://github.com/mominul58/FloodML-Geo"
 license: MIT
 keywords:
   - flood susceptibility
